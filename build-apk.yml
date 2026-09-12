@@ -1,0 +1,50 @@
+name: Compilar APK
+
+# Se ejecuta al subir cambios y tambien de forma manual (boton "Run workflow")
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar el repositorio
+        uses: actions/checkout@v4
+
+      - name: Instalar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Instalar Java (JDK 17)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Preparar Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Instalar dependencias
+        run: npm install
+
+      - name: Agregar plataforma Android
+        run: npx cap add android
+
+      - name: Sincronizar (copia plugins y config)
+        run: npx cap sync android
+
+      - name: Dar permisos a gradlew
+        run: chmod +x android/gradlew
+
+      - name: Compilar la APK (debug)
+        run: cd android && ./gradlew assembleDebug --no-daemon
+
+      - name: Publicar la APK como resultado descargable
+        uses: actions/upload-artifact@v4
+        with:
+          name: S2S-Point-APK
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
