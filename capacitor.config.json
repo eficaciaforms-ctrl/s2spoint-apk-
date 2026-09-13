@@ -3,7 +3,7 @@
   "appName": "S2S Point",
   "webDir": "www",
   "server": {
-    "url": "https://eficaciaforms-ctrl.github.io/s2spointv2/",
+    "url": "https://eficaciaforms-ctrl.github.io/s2spointv2-test/",
     "cleartext": false,
     "androidScheme": "https"
   }
