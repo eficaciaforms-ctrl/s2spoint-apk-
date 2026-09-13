@@ -37,10 +37,18 @@ jobs:
 
       - name: Agregar permiso de camara al Manifest
         run: |
-          MANIFEST=android/app/src/main/AndroidManifest.xml
-          sed -i 's#<application#    <uses-permission android:name="android.permission.CAMERA" />\n    <uses-feature android:name="android.hardware.camera" android:required="false" />\n    <application#' "$MANIFEST"
-          echo "----- Manifest -----"
-          cat "$MANIFEST"
+          python3 - <<'PY'
+          import re
+          ruta = "android/app/src/main/AndroidManifest.xml"
+          with open(ruta, encoding="utf-8") as f:
+              xml = f.read()
+          perms = '    <uses-permission android:name="android.permission.CAMERA" />\n    <uses-feature android:name="android.hardware.camera" android:required="false" />\n'
+          if "android.permission.CAMERA" not in xml:
+              xml = xml.replace("<application", perms + "    <application", 1)
+          with open(ruta, "w", encoding="utf-8") as f:
+              f.write(xml)
+          print(xml)
+          PY
 
       - name: Dar permisos a gradlew
         run: chmod +x android/gradlew
@@ -52,3 +60,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: S2S-Point-APK
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
