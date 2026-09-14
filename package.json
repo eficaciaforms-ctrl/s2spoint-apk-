@@ -12,6 +12,7 @@
     "@capacitor-community/background-geolocation": "^1.2.20"
   },
   "devDependencies": {
-    "@capacitor/cli": "^6.0.0"
+    "@capacitor/cli": "^6.0.0",
+    "@capacitor/assets": "^3.0.5"
   }
 }
