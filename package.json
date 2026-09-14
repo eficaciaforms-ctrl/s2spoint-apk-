@@ -1,12 +1,14 @@
 {
   "name": "s2spoint-apk",
   "version": "1.0.0",
-  "description": "S2S Point - APK con rastreo de ubicacion en segundo plano",
+  "description": "S2S Point APK",
   "private": true,
   "dependencies": {
     "@capacitor/android": "6.1.2",
     "@capacitor/core": "6.1.2",
     "@capacitor/camera": "6.1.2",
+    "@capacitor/share": "6.0.3",
+    "@capacitor/filesystem": "6.1.2",
     "@capacitor-community/background-geolocation": "1.2.20"
   },
   "devDependencies": {
