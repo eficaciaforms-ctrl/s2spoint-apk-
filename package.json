@@ -1,7 +1,7 @@
 {
-  "name": "s2spoint-apk",
+  "name": "aspery-apk",
   "version": "1.0.0",
-  "description": "S2S Point APK",
+  "description": "Aspery APK - offline-first con rastreo de ubicacion",
   "private": true,
   "dependencies": {
     "@capacitor/android": "^6.0.0",

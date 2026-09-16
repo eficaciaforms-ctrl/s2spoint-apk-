@@ -1,10 +1,6 @@
 {
-  "appId": "com.eficacia.s2spoint",
-  "appName": "S2S Point",
+  "appId": "com.eficacia.aspery",
+  "appName": "Aspery",
   "webDir": "www",
-  "server": {
-    "url": "https://eficaciaforms-ctrl.github.io/s2spointv2-test/",
-    "cleartext": false,
-    "androidScheme": "https"
-  }
+  "android": { "allowMixedContent": true }
 }
