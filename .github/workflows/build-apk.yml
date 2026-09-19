@@ -31,6 +31,19 @@ jobs:
           echo "----- Contenido del app empaquetado -----"
           ls -la www
 
+      - name: Ofuscar el codigo del app (proteccion)
+        run: |
+          npm install -g javascript-obfuscator || true
+          for archivo in www/app.js www/config.js www/base_pdv.js; do
+            if [ -f "$archivo" ]; then
+              javascript-obfuscator "$archivo" --output "$archivo" \
+                --compact true --control-flow-flattening true \
+                --dead-code-injection true --string-array true \
+                --string-array-encoding base64 --self-defending true || echo "ofuscacion omitida en $archivo"
+            fi
+          done
+          echo "Ofuscacion completada"
+
       - name: Instalar dependencias
         run: npm install
 
