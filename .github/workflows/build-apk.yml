@@ -63,18 +63,39 @@ jobs:
       - name: Sincronizar (copia app, plugins y config)
         run: npx cap sync android
 
-      - name: Agregar permiso de camara al Manifest
+      - name: Agregar permisos (camara + ubicacion + seguimiento en vivo) al Manifest
         run: |
           python3 - <<'PY'
           ruta = "android/app/src/main/AndroidManifest.xml"
           with open(ruta, encoding="utf-8") as f:
               xml = f.read()
-          perms = '    <uses-permission android:name="android.permission.CAMERA" />\n    <uses-feature android:name="android.hardware.camera" android:required="false" />\n'
-          if "android.permission.CAMERA" not in xml:
-              xml = xml.replace("<application", perms + "    <application", 1)
+
+          # Permisos que necesita la APK. El rastreo nativo (seguimiento en vivo)
+          # necesita ubicacion en segundo plano + servicio en primer plano + notificacion.
+          permisos = [
+              'android.permission.CAMERA',
+              'android.permission.ACCESS_COARSE_LOCATION',
+              'android.permission.ACCESS_FINE_LOCATION',
+              'android.permission.ACCESS_BACKGROUND_LOCATION',
+              'android.permission.FOREGROUND_SERVICE',
+              'android.permission.FOREGROUND_SERVICE_LOCATION',
+              'android.permission.POST_NOTIFICATIONS',
+              'android.permission.WAKE_LOCK',
+          ]
+          bloque = ''
+          for p in permisos:
+              if p not in xml:
+                  bloque += '    <uses-permission android:name="%s" />\n' % p
+          # La camara ademas declara un feature opcional
+          if 'android.hardware.camera' not in xml:
+              bloque += '    <uses-feature android:name="android.hardware.camera" android:required="false" />\n'
+
+          if bloque:
+              xml = xml.replace("<application", bloque + "    <application", 1)
+
           with open(ruta, "w", encoding="utf-8") as f:
               f.write(xml)
-          print("permiso camara ok")
+          print("permisos agregados ok")
           PY
 
       - name: Dar permisos a gradlew
