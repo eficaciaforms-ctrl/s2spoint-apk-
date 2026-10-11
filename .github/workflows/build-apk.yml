@@ -101,6 +101,37 @@ jobs:
       - name: Dar permisos a gradlew
         run: chmod +x android/gradlew
 
+      - name: Subir a compileSdk 35 (lo exige el motor OTA; targetSdk queda en 34)
+        run: |
+          python3 - <<'PY'
+          import re
+
+          # 1) compileSdk a 35 (dejamos targetSdk en 34 para no cambiar comportamiento)
+          vg = "android/variables.gradle"
+          s = open(vg, encoding="utf-8").read()
+          s = re.sub(r'compileSdkVersion\s*=\s*\d+', 'compileSdkVersion = 35', s)
+          open(vg, "w", encoding="utf-8").write(s)
+          print("variables.gradle -> compileSdk 35")
+
+          # 2) Android Gradle Plugin a una version que soporta 35
+          bg = "android/build.gradle"
+          s = open(bg, encoding="utf-8").read()
+          s = re.sub(r"com\.android\.tools\.build:gradle:[0-9.]+",
+                     "com.android.tools.build:gradle:8.7.2", s)
+          open(bg, "w", encoding="utf-8").write(s)
+          print("build.gradle -> AGP 8.7.2")
+
+          # 3) Gradle wrapper a una version compatible con ese AGP
+          wp = "android/gradle/wrapper/gradle-wrapper.properties"
+          s = open(wp, encoding="utf-8").read()
+          s = re.sub(r"gradle-[0-9.]+-(all|bin)\.zip", "gradle-8.9-all.zip", s)
+          open(wp, "w", encoding="utf-8").write(s)
+          print("gradle-wrapper -> Gradle 8.9")
+          PY
+          echo "----- variables.gradle -----"; grep -E "compileSdkVersion|targetSdkVersion" android/variables.gradle
+          echo "----- AGP -----"; grep "com.android.tools.build:gradle" android/build.gradle
+          echo "----- wrapper -----"; grep distributionUrl android/gradle/wrapper/gradle-wrapper.properties
+
       - name: Firma fija (misma firma en todas las APK → instalar encima sin desinstalar)
         run: |
           mkdir -p ~/.android
