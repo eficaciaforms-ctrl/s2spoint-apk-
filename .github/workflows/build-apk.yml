@@ -101,17 +101,43 @@ jobs:
       - name: Dar permisos a gradlew
         run: chmod +x android/gradlew
 
-      - name: Subir a compileSdk 35 (lo exige el motor OTA; targetSdk queda en 34)
+      - name: Ajustes de Android que exige el motor OTA (compileSdk 35 + minSdk 23)
         run: |
           python3 - <<'PY'
           import re
 
-          # 1) compileSdk a 35 (dejamos targetSdk en 34 para no cambiar comportamiento)
+          # 1) compileSdk a 35 y minSdk a 23 (lo exigen las librerias de Google que
+          #    trae el motor OTA). targetSdk se queda en 34 a proposito para que el
+          #    comportamiento en los celulares no cambie.
           vg = "android/variables.gradle"
           s = open(vg, encoding="utf-8").read()
           s = re.sub(r'compileSdkVersion\s*=\s*\d+', 'compileSdkVersion = 35', s)
+          s = re.sub(r'minSdkVersion\s*=\s*\d+',     'minSdkVersion = 23',     s)
           open(vg, "w", encoding="utf-8").write(s)
-          print("variables.gradle -> compileSdk 35")
+          print("variables.gradle -> compileSdk 35 / minSdk 23")
+
+          # 1b) Activar "desugaring" (lo necesitan WorkManager/Guava al compilar).
+          #     Se agrega al final para que mande sobre lo que define Capacitor.
+          ab = "android/app/build.gradle"
+          s = open(ab, encoding="utf-8").read()
+          if "coreLibraryDesugaringEnabled" not in s:
+              extra = "\n".join([
+                  "",
+                  "// --- Agregado por el workflow: lo necesitan las librerias del motor OTA ---",
+                  "android {",
+                  "    compileOptions {",
+                  "        coreLibraryDesugaringEnabled true",
+                  "        sourceCompatibility JavaVersion.VERSION_17",
+                  "        targetCompatibility JavaVersion.VERSION_17",
+                  "    }",
+                  "}",
+                  "dependencies {",
+                  '    coreLibraryDesugaring "com.android.tools:desugar_jdk_libs:2.1.5"',
+                  "}",
+                  "",
+              ])
+              open(ab, "w", encoding="utf-8").write(s + extra)
+              print("app/build.gradle -> desugaring activado")
 
           # 2) Android Gradle Plugin a una version que soporta 35
           bg = "android/build.gradle"
