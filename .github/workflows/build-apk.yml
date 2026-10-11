@@ -101,6 +101,16 @@ jobs:
       - name: Dar permisos a gradlew
         run: chmod +x android/gradlew
 
+      - name: Firma fija (misma firma en todas las APK → instalar encima sin desinstalar)
+        run: |
+          mkdir -p ~/.android
+          if [ -n "${{ secrets.DEBUG_KEYSTORE_B64 }}" ]; then
+            echo "${{ secrets.DEBUG_KEYSTORE_B64 }}" | base64 -d > ~/.android/debug.keystore
+            echo "Firma fija instalada ✓"
+          else
+            echo "ADVERTENCIA: falta el secreto DEBUG_KEYSTORE_B64 → se usará una firma aleatoria (habrá que desinstalar para actualizar)."
+          fi
+
       - name: Compilar la APK (debug)
         run: cd android && ./gradlew assembleDebug --no-daemon
 
