@@ -2,5 +2,13 @@
   "appId": "com.eficacia.aspery",
   "appName": "Aspery",
   "webDir": "www",
-  "android": { "allowMixedContent": true }
+  "android": { "allowMixedContent": true },
+  "plugins": {
+    "CapacitorUpdater": {
+      "autoUpdate": false,
+      "appReadyTimeout": 20000,
+      "responseTimeout": 20,
+      "directUpdate": false
+    }
+  }
 }
