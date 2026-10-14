@@ -1,0 +1,428 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<meta name="theme-color" content="#0F172A"/>
+<title>Aspery · En Vivo (tiempo real)</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<style>
+:root{--navy:#0F172A;--navy2:#1E293B;--blue:#0EA5F9;--green:#16A34A;--amber:#F59E0B;--red:#DC2626;--bg:#F1F5F9;--card:#fff;--line:#E2E8F0;--t1:#0F172A;--t2:#475569;--t3:#94A3B8;}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--t1);overflow:hidden}
+button{font-family:inherit;cursor:pointer}
+
+/* LOGIN */
+.login{min-height:100vh;min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:24px;background:linear-gradient(160deg,#0F172A,#1E293B 55%,#0EA5F9 150%)}
+.login-card{background:#fff;border-radius:20px;padding:30px 26px;width:100%;max-width:360px;box-shadow:0 20px 55px rgba(0,0,0,.35)}
+.login-logo{width:58px;height:58px;background:var(--navy);border-radius:15px;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;color:#fff;font-size:28px}
+.login-t{text-align:center;font-size:19px;font-weight:800;color:var(--navy)}.login-t b{color:var(--blue)}
+.login-s{text-align:center;font-size:12.5px;color:var(--t2);margin:4px 0 20px}
+.login label{display:block;font-size:12px;font-weight:600;color:var(--t2);margin:12px 0 5px}
+.login input{width:100%;height:48px;border:1.5px solid var(--line);border-radius:11px;padding:0 14px;font-size:15px}
+.login input:focus{outline:none;border-color:var(--blue)}
+.login .go{width:100%;height:50px;margin-top:18px;background:var(--navy);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700}
+.login .go:active{background:var(--blue)}
+.login-err{display:none;background:#FEE2E2;color:var(--red);font-size:12.5px;padding:10px 12px;border-radius:9px;margin-top:4px}
+.login-foot{text-align:center;font-size:11px;color:var(--t3);margin-top:18px}.login-foot b{color:var(--blue)}
+
+/* APP */
+#app{display:none;flex-direction:column;height:100vh;height:100dvh}
+.top{background:var(--navy);color:#fff;padding:11px 16px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.top .brand{font-size:16px;font-weight:800}.top .brand b{color:var(--blue)}
+.live-pill{display:flex;align-items:center;gap:7px;background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.4);border-radius:999px;padding:5px 11px;font-size:12px;font-weight:600}
+.live-pill .dot{width:9px;height:9px;border-radius:50%;background:#22C55E;animation:pulse 1.6s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(34,197,94,.5)}70%{box-shadow:0 0 0 8px rgba(34,197,94,0)}100%{box-shadow:0 0 0 0 rgba(34,197,94,0)}}
+.top .who{margin-left:auto;font-size:12.5px;color:#CBD5E1}
+.top .out{background:rgba(255,255,255,.12);border:none;color:#fff;font-size:12px;font-weight:600;padding:8px 12px;border-radius:9px;margin-left:10px}
+.top .volver{background:var(--blue);color:#fff;font-size:12px;font-weight:700;padding:9px 13px;border-radius:9px;margin-left:10px;text-decoration:none;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;flex-shrink:0}
+.top .volver:hover{background:#0284C7}
+.top .volver:active{transform:scale(.97)}
+.status{background:#FEF3C7;color:#B45309;font-size:12px;padding:7px 16px;text-align:center;flex-shrink:0;display:none}
+
+.main{flex:1;display:flex;min-height:0}
+.list{width:300px;max-width:42%;background:#fff;border-right:1px solid var(--line);overflow-y:auto;flex-shrink:0}
+.list-h{padding:12px 14px;font-size:13px;font-weight:700;color:var(--t2);border-bottom:1px solid var(--line);position:sticky;top:0;background:#fff;z-index:2}
+.it{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--line);cursor:pointer}
+.it:hover{background:var(--bg)}
+.it .av{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:12px;flex-shrink:0}
+.it .nm{font-size:13.5px;font-weight:700;line-height:1.2}
+.it .sub{font-size:11.5px;color:var(--t2);margin-top:2px}
+.it .ago{margin-left:auto;font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;flex-shrink:0}
+.ago.now{background:#DCFCE7;color:var(--green)}.ago.mid{background:#FEF3C7;color:#B45309}.ago.old{background:#F1F5F9;color:var(--t3)}
+#map{flex:1;min-height:0}
+.mk-pin{display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:11px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 2px 7px rgba(0,0,0,.45);border:2px solid #fff}
+.mk-pin span{transform:rotate(45deg)}
+.hito{display:flex;align-items:center;justify-content:center;width:26px;height:26px;color:#fff;font-weight:800;font-size:12px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 2px 6px rgba(0,0,0,.4);border:2px solid #fff}
+.hito{line-height:0}
+.map-wrap{flex:1;min-height:0;position:relative;display:flex;flex-direction:column}
+.rec-bar{display:none;align-items:center;gap:10px;background:#0F172A;color:#fff;padding:9px 14px;font-size:13px;flex-shrink:0}
+.rec-bar b{color:#38BDF8}
+.rec-bar .info{color:#CBD5E1;font-size:12px}
+.rec-bar .x{margin-left:auto;background:rgba(255,255,255,.14);border:none;color:#fff;font-size:12px;font-weight:600;padding:6px 12px;border-radius:8px;cursor:pointer}
+.empty{padding:40px 18px;text-align:center;color:var(--t3);font-size:13px;line-height:1.7}
+.empty .ic{font-size:36px;display:block;margin-bottom:8px}
+/* ══════════════════════════════════════════════════════
+   FORMATO TELÉFONO (vertical)
+   Partir la pantalla entre mapa y lista deja las dos
+   inservibles. En teléfono se muestra UNA a pantalla
+   completa y se alterna con el conmutador de arriba.
+   ══════════════════════════════════════════════════════ */
+.vtog{display:none}
+@media(max-width:720px){
+  /* Todo en UNA fila: si envuelve, se come media pantalla */
+  .top{padding:9px 11px;gap:7px;flex-wrap:nowrap}
+  .top .brand{font-size:14.5px;white-space:nowrap}
+  .top .who{font-size:11px;margin-left:auto;max-width:30%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:1}
+  .top .out{padding:8px 10px;min-height:38px;margin-left:6px;flex-shrink:0}
+  /* Solo el ícono: con el texto no cabe todo en una fila */
+  .top .volver{padding:9px 11px;min-height:38px;margin-left:6px;font-size:14px}
+  .v-largo{display:none}
+  /* El punto verde basta como señal de "en vivo"; el texto no cabe */
+  .live-pill{font-size:0;padding:6px;gap:0;flex-shrink:0}
+  .live-pill .dot{width:11px;height:11px}
+
+  /* Conmutador Lista / Mapa */
+  .vtog{display:flex;gap:6px;background:#E2E8F0;padding:5px;margin:0;flex-shrink:0}
+  .vtog button{flex:1;min-height:44px;border:none;border-radius:9px;background:transparent;
+    font-family:inherit;font-size:13.5px;font-weight:800;color:#475569;cursor:pointer}
+  .vtog button.on{background:#fff;color:#0F172A;box-shadow:0 1px 4px rgba(0,0,0,.12)}
+
+  .main{flex-direction:column}
+  .list{width:100%;max-width:none;max-height:none;flex:1;border-right:none;overflow-y:auto}
+  .map-wrap{flex:1;min-height:0}
+
+  /* Una vista a la vez */
+  body.v-lista .map-wrap{display:none}
+  body.v-mapa  .list{display:none}
+
+  /* Filas de la lista más cómodas para el dedo */
+  .it{padding:14px;gap:12px;min-height:64px}
+  .it .av{width:40px;height:40px;font-size:13px}
+  .it .nm{font-size:14.5px}
+  .it .sub{font-size:12px}
+  .it .ago{font-size:11.5px;padding:5px 10px}
+  .list-h{padding:13px 14px;font-size:13.5px}
+  .rec-bar{flex-wrap:wrap;padding:10px 12px}
+  .rec-bar .x{min-height:40px;padding:9px 14px}
+}
+</style>
+</head>
+<body>
+
+<div class="login" id="login">
+  <div class="login-card">
+    <div class="login-logo">🛰️</div>
+    <p class="login-t">Asper<b>y</b> · En Vivo</p>
+    <p class="login-s">Ubicación en tiempo real (Firebase)</p>
+    <div class="login-err" id="lerr"></div>
+    <label>Usuario</label>
+    <input id="lu" placeholder="JEFECANAL, SUPLIMA, USUARIOPRUEBA…" autocapitalize="characters" style="text-transform:uppercase"/>
+    <label>Contraseña</label>
+    <input id="lp" type="password" placeholder="••••••••"/>
+    <button class="go" onclick="doLogin()">Entrar →</button>
+    <div class="login-foot">Mismo usuario del Aspery Dash · Desarrollado por <b>SPG</b></div>
+  </div>
+</div>
+
+<div id="app">
+  <div class="top">
+    <div class="brand">Asper<b>y</b> · En Vivo</div>
+    <div class="live-pill"><span class="dot"></span>Tiempo real</div>
+    <div class="who" id="who">—</div>
+    <a class="volver" href="index.html" title="Volver al dashboard de Seguimiento y Control">📊<span class="v-largo"> Dashboard</span></a>
+    <button class="out" onclick="logout()">Salir</button>
+  </div>
+  <div class="status" id="status"></div>
+  <div class="vtog" id="vtog">
+    <button id="vt-lista" class="on" onclick="setVista('lista')">👥 Personal</button>
+    <button id="vt-mapa"  onclick="setVista('mapa')">🗺️ Mapa</button>
+  </div>
+  <div class="main">
+    <div class="list">
+      <div class="list-h" id="list-h">Equipo</div>
+      <div id="list"></div>
+    </div>
+    <div class="map-wrap">
+      <div class="rec-bar" id="rec-bar">📍 Recorrido de <b id="rec-nm"></b> <span class="info" id="rec-info"></span><button class="x" onclick="cerrarRecorrido()">✕ Cerrar recorrido</button></div>
+      <div id="map"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== CONFIG =====
+var FB_PROJECT='aspery-8780d';
+var FB_KEY='AIzaSyCabjIjVRCXb_BlNTXi_QHQw9yNhBV6IIE';
+
+// Para leer el recorrido del día (historial de señales) desde Google Sheets
+var SCRIPT_URL='https://script.google.com/macros/s/AKfycbzC_ANIW871GP6G3uUWowoaSHo-4cIAhObFL7xp8m_ZJjdqs2P9KWYxZIcGAX9oy8cl/exec';
+var APP_TOKEN='ASP-dcdc1d72bd13356a6f1d0e58eda80435';
+// ← PEGA AQUÍ tu token de Mapbox (gratis). Si queda vacío, usa OSRM automáticamente.
+var MAPBOX_TOKEN='';
+
+var LOGIN={
+  'JEFECANAL'  :{pass:'JEFE123$', nombre:'Sebastian Pereyra', equipo:'TODOS'},
+  'SUPLIMA'    :{pass:'SUPER123$',nombre:'Alberto Silva',    equipo:['PROMLIM1','PROMLIM3','PROMLIM5','PROMLIM6']},
+  'SUPAREQUIPA':{pass:'SUPER123$',nombre:'Diana Gamero',equipo:['PROMICA','PROMAQP','PROMCUS','PROMTAC']},
+  'SUPHUANCAYO':{pass:'SUPER123$',nombre:'Gabriela Ymaña',equipo:['PROMTPP','PROMHYO']},
+  'SUPPIURA'   :{pass:'SUPER123$',nombre:'Roberto Arica',   equipo:['PROMTRUX','PROMCIX','PROMPIU']},
+  'USUARIOPRUEBA':{pass:'SUPER123$',nombre:'Usuario Prueba',   equipo:['PROMTEST']}
+};
+var TODAS=['PROMLIM1','PROMLIM3','PROMLIM5','PROMLIM6','PROMAQP','PROMCUS','PROMTAC','PROMHYO','PROMTPP','PROMCIX','PROMTRUX','PROMICA','PROMPIU'];
+
+var SESION=null, _map=null, _marks={}, _db=null, _unsub=null, _datos={}, _first=true, _tick=null;
+var COLS=['#0EA5F9','#059669','#D97706','#7C3AED','#0D9488','#DB2777','#0891B2','#DC2626'];
+function colUsr(u){var s=0;for(var i=0;i<u.length;i++)s+=u.charCodeAt(i);return COLS[s%COLS.length];}
+function inic(u){return String(u).replace(/[^A-Z0-9]/gi,'').slice(-2).toUpperCase();}
+function hoyISO(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+
+function doLogin(){
+  var u=(document.getElementById('lu').value||'').trim().toUpperCase();
+  var p=document.getElementById('lp').value||'';
+  var e=document.getElementById('lerr');
+  if(!LOGIN[u]){e.textContent='Usuario "'+u+'" no encontrado';e.style.display='block';return;}
+  if(LOGIN[u].pass!==p){e.textContent='Contraseña incorrecta';e.style.display='block';return;}
+  e.style.display='none';
+  var eq=(LOGIN[u].equipo==='TODOS')?TODAS.slice():LOGIN[u].equipo.slice();
+  SESION={user:u,nombre:LOGIN[u].nombre,equipo:eq};
+  try{localStorage.setItem('aspery_envivo',JSON.stringify(SESION));}catch(x){}
+  // Sesión compartida: si luego abre el dashboard, tampoco le pedirá usuario
+  try{localStorage.setItem('aspery_sso',JSON.stringify({user:u,nombre:LOGIN[u].nombre,t:Date.now()}));}catch(x){}
+  entrar();
+}
+function logout(){try{localStorage.removeItem('aspery_envivo');localStorage.removeItem('aspery_sso');}catch(x){} if(_unsub){_unsub();_unsub=null;} if(_tick){clearInterval(_tick);_tick=null;} location.reload();}
+
+function entrar(){
+  document.getElementById('login').style.display='none';
+  document.getElementById('app').style.display='flex';
+  document.getElementById('who').textContent=SESION.nombre;
+  document.getElementById('list-h').textContent='Equipo · '+SESION.equipo.length+' promotora'+(SESION.equipo.length===1?'':'s');
+  _map=L.map('map',{zoomControl:true,attributionControl:false}).setView([-9.19,-75.0],5);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(_map);
+  setTimeout(function(){_map.invalidateSize();},200);
+  conectarFirebase();
+  _tick=setInterval(render,15000); // refresca los "hace X" cada 15s
+}
+
+function status(msg){var s=document.getElementById('status'); if(msg){s.textContent=msg;s.style.display='block';}else s.style.display='none';}
+
+function conectarFirebase(){
+  try{
+    if(typeof firebase==='undefined'){ status('No se pudo cargar Firebase (revisa tu internet).'); return; }
+    firebase.initializeApp({apiKey:FB_KEY,projectId:FB_PROJECT});
+    _db=firebase.firestore();
+    // onSnapshot = tiempo real: cada vez que una promotora manda su posición, llega al instante
+    _unsub=_db.collection('ubicaciones_live').onSnapshot(function(snap){
+      status('');
+      snap.forEach(function(doc){
+        var d=doc.data()||{}; var u=String(d.usuario||doc.id||'').toUpperCase();
+        if(SESION.equipo.indexOf(u)<0) return;
+        var lat=Number(d.lat), lng=Number(d.lng);
+        if(isNaN(lat)||isNaN(lng)) return;
+        // descartar coords imposibles para Perú
+        if(lat>1||lat<-19.5||lng>-68||lng<-82) return;
+        var tsMs=0; try{ tsMs=d.ts && d.ts.toDate ? d.ts.toDate().getTime() : (d.ts?new Date(d.ts).getTime():0); }catch(e){}
+        _datos[u]={lat:lat,lng:lng,hora:String(d.hora||''),fecha:String(d.fecha||''),bat:String(d.bateria||''),tsMs:tsMs};
+      });
+      render();
+    }, function(err){
+      status('Firebase: sin conexión en tiempo real. Reintentando…');
+    });
+  }catch(e){ status('Error iniciando Firebase: '+(e&&e.message||e)); }
+}
+
+function minDesde(tsMs){ if(!tsMs) return 999; return Math.max(0,Math.round((Date.now()-tsMs)/60000)); }
+function agoTxt(tsMs){
+  if(!tsMs) return '—';
+  var s=Math.max(0,Math.round((Date.now()-tsMs)/1000));
+  if(s<60) return 'hace '+s+'s';
+  var m=Math.round(s/60); if(m<60) return 'hace '+m+' min';
+  var h=Math.floor(m/60); return 'hace '+h+'h '+(m%60)+'m';
+}
+
+function render(){
+  var hoy=hoyISO(), pts=[], listHtml='';
+  // ordenar por más reciente
+  var orden=SESION.equipo.slice().sort(function(a,b){ var ta=(_datos[a]&&_datos[a].tsMs)||0, tb=(_datos[b]&&_datos[b].tsMs)||0; return tb-ta; });
+  orden.forEach(function(u){
+    var d=_datos[u];
+    var activoHoy = d && (d.fecha===hoy || minDesde(d.tsMs)<720); // hoy, o con dato de hace <12h
+    if(d && activoHoy){
+      pts.push([d.lat,d.lng]);
+      var col=colUsr(u), m=minDesde(d.tsMs), cls=m<=2?'now':(m<=10?'mid':'old');
+      if(_marks[u]){ _marks[u].setLatLng([d.lat,d.lng]); }
+      else{
+        var ic=L.divIcon({className:'',html:'<div class="mk-pin" style="width:30px;height:30px;background:'+col+'"><span>'+inic(u)+'</span></div>',iconSize:[30,30],iconAnchor:[15,30]});
+        _marks[u]=L.marker([d.lat,d.lng],{icon:ic}).addTo(_map);
+        (function(uu){ _marks[uu].on('click', function(){ verRecorrido(uu); }); })(u);
+      }
+      _marks[u].bindTooltip(u+' · '+(d.hora?d.hora.slice(0,5):'')+' ('+agoTxt(d.tsMs)+')',{direction:'top',offset:[0,-28]});
+      listHtml+='<div class="it" onclick="verRecorrido(\''+u+'\')"><div class="av" style="background:'+col+'">'+inic(u)+'</div>'
+        +'<div><div class="nm">'+u+'</div><div class="sub">'+(d.hora?d.hora.slice(0,5):'')+(d.bat?' · 🔋'+d.bat:'')+' · ver recorrido ›</div></div>'
+        +'<span class="ago '+cls+'">'+agoTxt(d.tsMs)+'</span></div>';
+    } else {
+      if(_marks[u]){ _map.removeLayer(_marks[u]); delete _marks[u]; }
+      listHtml+='<div class="it" style="opacity:.55"><div class="av" style="background:#CBD5E1;color:#64748B">'+inic(u)+'</div>'
+        +'<div><div class="nm">'+u+'</div><div class="sub">Sin señal hoy</div></div><span class="ago old">—</span></div>';
+    }
+  });
+  document.getElementById('list').innerHTML=listHtml || '<div class="empty"><span class="ic">🛰️</span>Aún no hay posiciones en vivo.<br>Aparecen cuando una promotora marca inicio y el app envía su ubicación.</div>';
+  if(_first && pts.length){ _first=false; try{ _map.fitBounds(pts,{padding:[45,45],maxZoom:15}); }catch(e){} }
+}
+function irA(lat,lng){ if(_map) _map.setView([lat,lng],16,{animate:true}); }
+
+// ════════ RECORRIDO DEL DÍA (por calles) ════════
+function gasGet(params,cb){
+  params=params||{}; params.tk=APP_TOKEN;
+  var qs=Object.keys(params).map(function(k){return encodeURIComponent(k)+'='+encodeURIComponent(params[k]);}).join('&');
+  var ctrl=(typeof AbortController!=='undefined')?new AbortController():null;
+  var tm=setTimeout(function(){if(ctrl)ctrl.abort();},60000);  // la hoja de Ubicaciones es grande → damos más tiempo
+  fetch(SCRIPT_URL+'?'+qs,{signal:ctrl?ctrl.signal:undefined}).then(function(r){clearTimeout(tm);return r.json();}).then(cb).catch(function(){clearTimeout(tm);cb(null);});
+}
+function recHora(h){ h=String(h||''); var iso=h.match(/T(\d{2}):(\d{2}):(\d{2})/); if(iso){var hh=(parseInt(iso[1],10)+24-5)%24;return ('0'+hh).slice(-2)+':'+iso[2];} var m=h.match(/(\d{1,2}:\d{2})/); return m?m[1]:''; }
+function recFix(v,max){ var n=parseFloat(v); if(isNaN(n))return NaN; var g=0; while(Math.abs(n)>max&&g<10){n=n/10;g++;} return Math.round(n*1e6)/1e6; }
+function _downsample(arr,max){ if(arr.length<=max)return arr.slice(); var out=[],step=(arr.length-1)/(max-1); for(var i=0;i<max;i++)out.push(arr[Math.round(i*step)]); return out; }
+// Pega los puntos a las calles. Mapbox si hay token; si no, OSRM. Si falla, línea recta.
+function snapToRoads(latlngs,cb){
+  try{
+    if(!latlngs||latlngs.length<2){cb(latlngs||[]);return;}
+    var pts=_downsample(latlngs,95);
+    var c=pts.map(function(p){return p[1].toFixed(6)+','+p[0].toFixed(6);}).join(';');
+    var r=pts.map(function(){return '40';}).join(';');
+    var url = MAPBOX_TOKEN
+      ? 'https://api.mapbox.com/matching/v5/mapbox/walking/'+c+'?geometries=geojson&overview=full&radiuses='+r+'&access_token='+MAPBOX_TOKEN
+      : 'https://router.project-osrm.org/match/v1/driving/'+c+'?geometries=geojson&overview=full&tidy=true&radiuses='+r;
+    var ctrl=(typeof AbortController!=='undefined')?new AbortController():null;
+    var tm=setTimeout(function(){if(ctrl)ctrl.abort();},12000);
+    fetch(url,{signal:ctrl?ctrl.signal:undefined}).then(function(x){clearTimeout(tm);return x.json();}).then(function(j){
+      var ms=j&&j.matchings;
+      if(ms&&ms.length){ var out=[]; ms.forEach(function(m){ if(m.geometry&&m.geometry.coordinates) m.geometry.coordinates.forEach(function(cc){out.push([cc[1],cc[0]]);}); }); cb(out.length>1?out:latlngs); }
+      else cb(latlngs);
+    }).catch(function(){clearTimeout(tm);cb(latlngs);});
+  }catch(e){cb(latlngs);}
+}
+var _recCapa=null, _recUser=null;
+function verRecorrido(u){
+  setVista('mapa');          // en teléfono: el recorrido se ve en el mapa
+  _recUser=u;
+  if(!_recCapa) _recCapa=L.layerGroup().addTo(_map);
+  _recCapa.clearLayers();
+  document.getElementById('rec-bar').style.display='flex';
+  document.getElementById('rec-nm').textContent=u;
+  document.getElementById('rec-info').textContent='Cargando recorrido…';
+  var d=_datos[u]; if(d){ try{_map.setView([d.lat,d.lng],15,{animate:true});}catch(e){} }
+  cargarRecorridoFB(u);  // 1º intenta Firebase (rápido); si no hay, cae a Sheets
+}
+// Lee el recorrido del día desde Firebase (campo uf = usuario_fecha, sin índices compuestos)
+function cargarRecorridoFB(u){
+  try{
+    if(!_db){ cargarRecorridoSheets(u); return; }
+    _db.collection('ubicaciones').where('uf','==', u+'_'+hoyISO()).get().then(function(snap){
+      if(_recUser!==u) return;
+      var trail=[];
+      snap.forEach(function(doc){
+        var d=doc.data()||{}; var la=Number(d.lat), ln=Number(d.lng);
+        if(isNaN(la)||isNaN(ln)) return;
+        if(la>1||la<-19.5||ln>-68||ln<-82) return;
+        var ms=0; try{ ms=d.ts&&d.ts.toMillis?d.ts.toMillis():(d.ts?new Date(d.ts).getTime():0); }catch(e){}
+        trail.push([la,ln,String(d.hora||'').slice(0,5),ms]);
+      });
+      if(!trail.length){ cargarRecorridoSheets(u); return; }  // día viejo → Sheets
+      trail.sort(function(a,b){ return (a[3]||0)-(b[3]||0); });
+      dibujarRecorrido(u, trail.map(function(p){return [p[0],p[1],p[2]];}));
+    }).catch(function(){ cargarRecorridoSheets(u); });
+  }catch(e){ cargarRecorridoSheets(u); }
+}
+// Respaldo: días anteriores al #28 (solo están en Google Sheets)
+function cargarRecorridoSheets(u){
+  gasGet({accion:'listar_ubicaciones',promotoras:u,fecha:hoyISO()},function(r){
+    if(_recUser!==u) return;
+    if(r===null){ document.getElementById('rec-info').textContent='No se pudo cargar. Toca de nuevo.'; return; }
+    var filas=(r&&r.status==='ok'&&r.filas)?r.filas:[];
+    var trail=filas.map(function(f){return [recFix(f[4],90),recFix(f[5],180),recHora(f[2])];})
+      .filter(function(p){return !isNaN(p[0])&&!isNaN(p[1])&&p[0]<1&&p[0]>-19.5&&p[1]<-68&&p[1]>-82;});
+    trail.sort(function(a,b){return a[2]<b[2]?-1:1;});
+    dibujarRecorrido(u,trail);
+  });
+}
+function dibujarRecorrido(u,trail){
+  if(_recUser!==u) return;
+  _recCapa.clearLayers();
+  if(!trail.length){ document.getElementById('rec-info').textContent='Sin recorrido hoy (aún no hay señales).'; return; }
+  document.getElementById('rec-info').textContent=trail.length+' señales · desde '+(trail[0][2]||'');
+  var tr=trail.map(function(p){return [p[0],p[1]];});
+  var pintar=function(linea){
+    if(_recUser!==u) return;
+    _recCapa.clearLayers();
+    if(linea.length>1){ L.polyline(linea,{color:'#fff',weight:7,opacity:.9}).addTo(_recCapa); L.polyline(linea,{color:'#0EA5F9',weight:4,opacity:1}).addTo(_recCapa); }
+    trail.forEach(function(p,i){ if(i===trail.length-1)return; L.circleMarker([p[0],p[1]],{radius:3,color:'#0EA5F9',weight:1,fillColor:'#fff',fillOpacity:1}).addTo(_recCapa).bindTooltip('Señal '+(i+1)+(p[2]?(' · '+p[2]):''),{direction:'top'}); });
+    L.marker([trail[0][0],trail[0][1]],{icon:L.divIcon({className:'',html:'<div class="hito" style="background:#F59E0B">I</div>',iconSize:[26,26],iconAnchor:[13,26]})}).addTo(_recCapa).bindTooltip('Inicio'+(trail[0][2]?(' · '+trail[0][2]):''),{permanent:true,direction:'right',offset:[8,-6]});
+    var last=trail[trail.length-1];
+    L.circleMarker([last[0],last[1]],{radius:9,color:'#fff',weight:3,fillColor:'#16A34A',fillOpacity:1}).addTo(_recCapa).bindTooltip('Aquí ahora'+(last[2]?(' · '+last[2]):''),{permanent:true,direction:'top',offset:[0,-6]});
+    try{ _map.fitBounds(tr,{padding:[55,55],maxZoom:16}); }catch(e){}
+  };
+  pintar(tr);                                   // recta primero
+  snapToRoads(tr,function(res){ pintar(res); }); // luego pegada a calles
+}
+// ── Conmutador de vista en teléfono ──
+function setVista(v){
+  try{
+    document.body.classList.remove('v-lista','v-mapa');
+    document.body.classList.add(v==='mapa'?'v-mapa':'v-lista');
+    var a=document.getElementById('vt-lista'), b=document.getElementById('vt-mapa');
+    if(a) a.className = (v==='mapa'?'':'on');
+    if(b) b.className = (v==='mapa'?'on':'');
+    if(v==='mapa' && _map) setTimeout(function(){ try{ _map.invalidateSize(); }catch(e){} }, 120);
+  }catch(e){}
+}
+// Arranca en la lista: lo primero que un supervisor quiere ver es quién está activo
+try{ document.body.classList.add('v-lista'); }catch(e){}
+
+function cerrarRecorrido(){ _recUser=null; if(_recCapa) _recCapa.clearLayers(); document.getElementById('rec-bar').style.display='none'; }
+
+// Reanudar sesión. Primero la propia; si no hay, la compartida con el
+// dashboard de Control y Seguimiento (así no pide usuario dos veces).
+(function(){
+  try{
+    var s=localStorage.getItem('aspery_envivo');
+    if(s){ var o=JSON.parse(s); if(o&&o.user&&LOGIN[o.user]){ SESION=o; entrar(); return; } }
+  }catch(x){}
+  try{
+    var q=JSON.parse(localStorage.getItem('aspery_sso')||'null');
+    if(!q || !q.user) return;
+    if(!q.t || (Date.now()-q.t) > 12*3600000){ localStorage.removeItem('aspery_sso'); return; }
+    var u=String(q.user).toUpperCase();
+    if(!LOGIN[u]) return;                       // usuario que aquí no existe → pedir login
+    var eq = (LOGIN[u].equipo==='TODOS') ? TODAS.slice() : LOGIN[u].equipo.slice();
+    SESION={user:u, nombre:LOGIN[u].nombre, equipo:eq};
+    localStorage.setItem('aspery_envivo',JSON.stringify(SESION));
+    entrar();
+  }catch(x){}
+})();
+
+// Si llegamos desde el dashboard con ?u=PROMOTORA, abrir su recorrido solo
+(function(){
+  try{
+    var m = location.search.match(/[?&]u=([^&]+)/);
+    if(!m) return;
+    var u = decodeURIComponent(m[1]).trim().toUpperCase();
+    if(!u) return;
+    var intentos = 0;
+    var t = setInterval(function(){
+      intentos++;
+      if(intentos > 40){ clearInterval(t); return; }          // ~12 s y se rinde
+      if(typeof SESION==='undefined' || !SESION || !SESION.user) return;  // aún sin sesión
+      if(typeof _map==='undefined' || !_map) return;          // mapa aún no listo
+      clearInterval(t);
+      try{ verRecorrido(u); }catch(e){}
+    }, 300);
+  }catch(e){}
+})();
+</script>
+</body>
+</html>
